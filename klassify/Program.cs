@@ -48,7 +48,7 @@ namespace klassify
 
                 try
                 {
-                    DotNetEnv.Env.Load();
+                    DotNetEnv.Env.Load(isEmbeddedHashComment: true);
                 }
                 catch (FileNotFoundException)
                 {
@@ -72,12 +72,17 @@ namespace klassify
                     .Or(Environment.GetEnvironmentVariable("KLASSIFY_TIMEOUT")
                     .Or("30"));
 
-                if (String.IsNullOrWhiteSpace(Database) || String.IsNullOrWhiteSpace(UserId) || String.IsNullOrWhiteSpace(Password))
+                if (String.IsNullOrWhiteSpace(Database))
                 {
-                    throw new ArgumentException("One or more of these required parameters not set: Database, UserId, Password.");
+                    throw new ArgumentException("One or more of these required parameters not set: Database.");
                 }
 
-                using (SqlConnection connection = new SqlConnection($"Server={Server};Initial Catalog={Database};Persist Security Info=False;User ID={UserId};Password={Password};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout={Timeout};"))
+                var connectionString = (!String.IsNullOrWhiteSpace(UserId) && !String.IsNullOrWhiteSpace(Password))
+                                            ? $"Server={Server};Initial Catalog={Database};Persist Security Info=False;User ID={UserId};Password={Password};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=True;Connection Timeout={Timeout};"
+                                            : $"Server={Server};Initial Catalog={Database};Persist Security Info=False;Integrated Security=true;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=True;Connection Timeout={Timeout};";
+
+
+                using (SqlConnection connection = new SqlConnection(connectionString))
                 {
                     SqlDataAdapter adapter = new SqlDataAdapter(
                         $"SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE' AND TABLE_CATALOG='{Database}'",
